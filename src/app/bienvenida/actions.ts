@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/data/supabase';
+import { requireProductAccess } from '@/data/access';
 import { parseMoney } from '@/domain/money';
 import { initialSnapshot } from '@/domain/finance';
 import { countries,objectives } from '@/i18n/es';
@@ -10,7 +11,7 @@ const schema=z.object({name:z.string().trim().min(1).max(80),country:z.string(),
 export async function completeOnboarding(_state:FormState,form:FormData):Promise<FormState>{
  const parsed=schema.safeParse(Object.fromEntries(form));
  if(!parsed.success)return {error:'Revisa los campos antes de continuar.'};
- const {db}=await requireUser();const d=parsed.data;const country=countries.find(c=>c.code===d.country);
+ const {db}=await requireUser();await requireProductAccess(db);const d=parsed.data;const country=countries.find(c=>c.code===d.country);
  if(!country)return {error:'Selecciona un país disponible.'};
  if(form.get('consent')!=='on')return {error:'Confirma los términos y la privacidad para continuar.'};
  let snapshot;let amounts;

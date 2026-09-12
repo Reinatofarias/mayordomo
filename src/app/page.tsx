@@ -1,4 +1,55 @@
 import Link from 'next/link';
-import {ArrowUpRight,Leaf} from 'lucide-react';
+import {ArrowUpRight,BarChart3,Heart,Leaf} from 'lucide-react';
 import {Button} from '@/components/ui/button';
-export default function Home(){return <><header className="public-header"><Link href="/" className="brand">MAYORDOMO</Link><Link href="/acceso">Iniciar sesión <ArrowUpRight size={16} aria-hidden="true"/></Link></header><main><section className="hero"><div><p className="eyebrow">FINANZAS CON PROPÓSITO</p><h1>Más claridad.<br/>Menos preocupación.<br/><em>Un propósito.</em></h1><p className="lead">Organiza, entiende y administra tu dinero bajo principios bíblicos. Un paso a la vez, con sabiduría.</p><Button asChild><Link href="/acceso?modo=registro">Comenzar mi historia <ArrowUpRight aria-hidden="true"/></Link></Button><p className="hint">Tu dinero tiene una historia. Vamos a entenderla juntos.</p></div><div className="purpose-art" aria-hidden="true"><div className="arch"><Leaf strokeWidth={0.7}/><span>Administra con sabiduría.<br/><em>Vive con propósito.</em></span></div></div></section><section className="promise"><p className="eyebrow">LO QUE IMPORTA, EN ORDEN</p><div className="three-columns"><div><span>01</span><h2>Entiende dónde estás.</h2><p>Reúne tus ingresos, gastos y compromisos en un lugar.</p></div><div><span>02</span><h2>Decide con intención.</h2><p>Construye un plan que refleje tu realidad y tus prioridades.</p></div><div><span>03</span><h2>Avanza con propósito.</h2><p>Conecta tus decisiones diarias con lo que de verdad valoras.</p></div></div></section></main><footer className="public-footer"><span className="brand">MAYORDOMO</span><p>Organización y educación financiera. Tus decisiones siempre te pertenecen.</p><nav aria-label="Información"><Link href="/privacidad">Privacidad</Link><Link href="/terminos">Términos</Link><Link href="/soporte">Soporte</Link></nav></footer></>;}
+import {Brand} from '@/components/brand';
+import {hotmartCheckoutUrl} from '@/data/access';
+
+export default function Home(){
+ const checkout=hotmartCheckoutUrl();
+ return <>
+  <header className="public-header">
+   <Brand href="/" />
+   <Link href="/acceso">Iniciar sesión <ArrowUpRight size={16} aria-hidden="true"/></Link>
+  </header>
+  <main>
+   <section className="hero">
+    <div>
+     <p className="eyebrow">FINANZAS CON PROPÓSITO</p>
+     <h1>Tu asistente financiero con IA, guiado por sabiduría.</h1>
+     <p className="lead">Organiza tus movimientos, entiende tus decisiones y avanza con un plan claro. MAYORDOMO une claridad financiera, principios bíblicos y una experiencia simple para el día a día.</p>
+     <div className="page-actions">
+      {checkout?<Button asChild><a href={checkout} target="_blank" rel="noopener noreferrer">Comprar acceso <ArrowUpRight aria-hidden="true"/></a></Button>:<Button asChild><Link href="/acceso?modo=registro">Comenzar mi historia <ArrowUpRight aria-hidden="true"/></Link></Button>}
+      <Button asChild variant="outline"><Link href="/acceso">Ya tengo acceso</Link></Button>
+     </div>
+     <p className="hint">Tu dinero tiene una historia. Vamos a entenderla juntos.</p>
+    </div>
+    <div className="purpose-art" aria-label="Vista previa de MAYORDOMO">
+     <div className="phone-preview">
+      <Brand compact/>
+      <p>Disponible</p>
+      <strong>$ 12,480.00</strong>
+      <span>Tu dinero, una herramienta para el bien.</span>
+      <div className="preview-grid">
+       <article><BarChart3 aria-hidden="true"/><b>Organiza</b><small>tu dinero</small></article>
+       <article><Leaf aria-hidden="true"/><b>Decide</b><small>con sabiduría</small></article>
+       <article><Heart aria-hidden="true"/><b>Vive</b><small>con propósito</small></article>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section className="promise">
+    <p className="eyebrow">LO QUE IMPORTA, EN ORDEN</p>
+    <div className="three-columns">
+     <div><span>01</span><h2>Entiende dónde estás.</h2><p>Reúne ingresos, gastos, metas y compromisos en un solo lugar.</p></div>
+     <div><span>02</span><h2>Conversa con la IA.</h2><p>Pregunta por tus hábitos, riesgos y oportunidades con contexto financiero real.</p></div>
+     <div><span>03</span><h2>Avanza con propósito.</h2><p>Conecta tus decisiones diarias con un plan responsable y sostenible.</p></div>
+    </div>
+   </section>
+  </main>
+  <footer className="public-footer">
+   <Brand compact/>
+   <p>Organización y educación financiera. Tus decisiones siempre te pertenecen.</p>
+   <nav aria-label="Información"><Link href="/privacidad">Privacidad</Link><Link href="/terminos">Términos</Link><Link href="/soporte">Soporte</Link></nav>
+  </footer>
+ </>;
+}

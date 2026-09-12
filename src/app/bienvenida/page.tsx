@@ -1,3 +1,5 @@
 import {requireUser} from '@/data/supabase';
+import {requireProductAccess} from '@/data/access';
 import {Onboarding} from '@/components/onboarding';
-export default async function Welcome(){await requireUser();return <main className="auth-shell"><span className="brand">MAYORDOMO</span><Onboarding/></main>;}
+import {Brand} from '@/components/brand';
+export default async function Welcome(){const {db}=await requireUser();await requireProductAccess(db);return <main className="auth-shell"><Brand href="/" /><Onboarding/></main>;}

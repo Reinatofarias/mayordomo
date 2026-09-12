@@ -2,6 +2,7 @@ import 'server-only';
 import {z} from 'zod';
 import {redirect} from 'next/navigation';
 import {requireUser} from './supabase';
+import {claimPendingProductAccess,hasProductAccess} from './access';
 const minor=z.string().regex(/^-?\d+$/);
 export const profileSchema=z.object({id:z.uuid(),name:z.string(),country:z.string(),currency:z.string(),locale:z.string(),timezone:z.string(),monthly_income_minor:minor,fixed_expenses_minor:minor,opening_debt_minor:minor,reserve_minor:minor,objective:z.string().nullable(),onboarding_completed_at:z.string().nullable()});
 const profileFields='id,name,country,currency,locale,timezone,monthly_income_minor::text,fixed_expenses_minor::text,opening_debt_minor::text,reserve_minor::text,objective,onboarding_completed_at';
@@ -10,12 +11,9 @@ export async function getContext(requireAccess=true){
  const {data,error}=await db.from('profiles').select(profileFields).eq('id',user.id).single();
  if(error)throw new Error('No pudimos cargar tu perfil.');
  const profile=profileSchema.parse(data);
+ await claimPendingProductAccess(db);
+ if(requireAccess&&!await hasProductAccess(db))redirect('/acceso/pendiente');
  if(!profile.onboarding_completed_at)redirect('/bienvenida');
- if(process.env.HOTMART_ENABLED==='true'){
-  const pending=await db.rpc('claim_pending_payments');
-  if(pending.error)throw new Error('No pudimos verificar tu acceso.');
- }
- if(requireAccess){const access=await db.rpc('has_product_access');if(access.error)throw new Error('No pudimos verificar tu acceso.');if(access.data!==true)redirect('/perfil?estado=acceso');}
  return {db,user,profile};
 }
 export function monthBounds(month:string){

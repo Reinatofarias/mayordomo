@@ -39,6 +39,6 @@ Os testes de PostgreSQL usam PGlite e RLS, com uma simulação mínima do schema
 
 Auth, onboarding atômico, movimentos editáveis, orçamento mensal/por categoria, metas/dívidas editáveis, relatório mensal, importação CSV/XLSX confirmada, assistente com ferramentas sem escrita automática, processamento idempotente de pagamentos e suporte.
 
-Gemini, Hotmart e WhatsApp estão desativados até configuração e teste. WhatsApp só tem recepção de eventos; banco real e OCR/PDF não estão implementados. O manifesto permite instalação, sem operação financeira offline. Os textos legais públicos estão em versão inicial de MVP e ainda precisam de revisão jurídica antes de venda ampla.
+Gemini, Hotmart e WhatsApp estão desativados até configuração e teste. Hotmart já tem webhook, tela de acesso pendente e vínculo automático por e-mail confirmado; configure `HOTMART_CHECKOUT_URL` para exibir o botão de compra público. WhatsApp só tem recepção de eventos; banco real e OCR/PDF não estão implementados. O manifesto permite instalação, sem operação financeira offline. Os textos legais públicos estão em versão inicial de MVP e ainda precisam de revisão jurídica antes de venda ampla.
 
-Leia [integrações](docs/INTEGRATIONS.md) e [pendências para continuidade](docs/PROJECT_STATE.md). A versão ainda não está liberada para comercialização.
+Leia [integrações](docs/INTEGRATIONS.md), [roadmap do MVP](docs/ROADMAP_MVP.md) e [pendências para continuidade](docs/PROJECT_STATE.md). A versão ainda não está liberada para comercialização ampla.
