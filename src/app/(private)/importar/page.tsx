@@ -1,0 +1,2 @@
+import {getContext} from '@/data/finance';import {UploadForm} from '@/components/import-forms';
+export default async function ImportPage(){await getContext();return <><header className="page-heading"><p className="eyebrow">TU HISTORIA, EN UN LUGAR</p><h1>Subir extracto</h1><p>Revisa las columnas y confirma cada importación antes de guardar.</p></header><UploadForm/><p className="hint">XLSX: se lee la primera hoja. Los archivos originales no se conservan.</p></>;}
