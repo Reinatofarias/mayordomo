@@ -1,4 +1,5 @@
 import 'server-only';
+import { appOrigin } from '@/config/app-url';
 export async function readJson(request:Request,maxBytes=16000):Promise<unknown>{
  const reader=request.body?.getReader();if(!reader)throw new Error('Solicitud vacía.');
  const chunks:Uint8Array[]=[];let total=0;
@@ -6,4 +7,4 @@ export async function readJson(request:Request,maxBytes=16000):Promise<unknown>{
  const bytes=new Uint8Array(total);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
  return JSON.parse(new TextDecoder().decode(bytes));
 }
-export function sameOrigin(request:Request){return request.headers.get('origin')===new URL(process.env.APP_URL!).origin;}
+export function sameOrigin(request:Request){return request.headers.get('origin')===appOrigin(request.headers);}

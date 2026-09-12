@@ -2,17 +2,11 @@
 import { z } from 'zod';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { appOrigin } from '@/config/app-url';
 import { createClient, isConfigured } from '@/data/supabase';
 export type FormState={error?:string;message?:string};
 const credentials=z.object({email:z.email().max(254),password:z.string().min(12).max(128)});
-async function getAppUrl() {
- const incoming = await headers();
- const host = incoming.get('x-forwarded-host') || incoming.get('host');
- const configured = process.env.APP_URL;
- if (configured && !(configured.includes('localhost') && host && !host.includes('localhost'))) return configured;
- const protocol = incoming.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
- return host ? `${protocol}://${host}` : 'http://localhost:3000';
-}
+async function getAppUrl() { return appOrigin(await headers()); }
 export async function authenticate(_previous:FormState,form:FormData):Promise<FormState> {
  if(!isConfigured()) return {error:'El servicio todavía no está disponible. Inténtalo más tarde.'};
  const mode=form.get('mode');
