@@ -2,14 +2,15 @@ import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL, hasPublicSupabaseConfig } from '@/config/public-env';
 
 export function isConfigured() {
- return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+ return hasPublicSupabaseConfig();
 }
 export async function createClient() {
  if (!isConfigured()) throw new Error('El servicio todavía no está configurado.');
  const jar = await cookies();
- return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
+ return createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
   cookies: { getAll: () => jar.getAll(), setAll: values => {
    try { values.forEach(({name,value,options}) => jar.set(name,value,options)); }
    catch { /* Server Components rely on proxy to persist refreshed cookies. */ }
