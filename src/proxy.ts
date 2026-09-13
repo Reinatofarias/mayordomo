@@ -21,4 +21,4 @@ export async function proxy(request: NextRequest) {
  response.headers.set('Cache-Control','private, no-store');
  return response;
 }
-export const config={matcher:['/','/hoy/:path*','/movimientos/:path*','/plan/:path*','/mayordomo/:path*','/perfil/:path*','/bienvenida/:path*','/informe/:path*','/importar/:path*','/auth/:path*','/acceso','/recuperar','/api/chat']};
+export const config={matcher:['/','/hoy/:path*','/movimientos/:path*','/plan/:path*','/mayordomo/:path*','/perfil/:path*','/bienvenida/:path*','/informe/:path*','/importar/:path*','/auth/:path*','/acceso/:path*','/recuperar','/api/chat']};
