@@ -25,6 +25,11 @@ function webhookInvalid(error:unknown,payload:unknown){
  logEvent('payment_webhook_invalid',{success:false,reason,...summary});
  return Response.json({received:false,error:reason,...summary},{status:422});
 }
+function hotmartPolicy(){
+ const accessMode=(process.env.HOTMART_ACCESS_MODE??'FIXED_DAYS').trim().toUpperCase();
+ const accessDays=Number((process.env.HOTMART_ACCESS_DAYS??'30').trim());
+ return policySchema.parse({productIds:(process.env.HOTMART_PRODUCT_IDS??'').split(',').map(item=>item.trim()).filter(Boolean),accessMode,accessDays});
+}
 export async function POST(request:Request){
  if(process.env.HOTMART_ENABLED!=='true')return new Response(null,{status:404});
  const provider=new HotmartPaymentProvider(process.env.HOTMART_WEBHOOK_TOKEN??'');
@@ -32,7 +37,7 @@ export async function POST(request:Request){
  try{payload=await readJson(request,128000);}catch{logEvent('payment_webhook_invalid',{success:false,reason:'invalid_json'});return Response.json({received:false,error:'invalid_json'},{status:422});}
  if(!provider.verify(request.headers,payload))return new Response(null,{status:401});
  try{
- const policy=policySchema.parse({productIds:(process.env.HOTMART_PRODUCT_IDS??'').split(',').map(item=>item.trim()).filter(Boolean),accessMode:process.env.HOTMART_ACCESS_MODE,accessDays:process.env.HOTMART_ACCESS_DAYS?Number(process.env.HOTMART_ACCESS_DAYS):undefined});
+ const policy=hotmartPolicy();
  const event=provider.normalize(payload,policy);
  const {data,error}=await adminClient().rpc('process_payment_event',{p_event:event});
  if(error){logEvent('payment_webhook_failed',{success:false});return new Response(null,{status:503});}
