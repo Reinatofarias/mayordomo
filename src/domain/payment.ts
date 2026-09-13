@@ -6,7 +6,7 @@ export type PaymentEvent={
 };
 export type PaymentPolicy={productIds:string[];accessMode:'FIXED_DAYS'|'PROVIDER_PERIOD';accessDays?:number};
 export interface PaymentProvider {
- verify(headers:Headers):boolean;
+ verify(headers:Headers,payload?:unknown):boolean;
  normalize(payload:unknown,policy:PaymentPolicy):PaymentEvent;
 }
 export function mayApplyPayment(existing:{eventAt:string;status:'ACTIVE'|'REVOKED'}|null,event:PaymentEvent){
@@ -15,4 +15,3 @@ export function mayApplyPayment(existing:{eventAt:string;status:'ACTIVE'|'REVOKE
  if(Date.parse(event.occurredAt)===Date.parse(existing.eventAt)&&existing.status==='REVOKED'&&event.action==='ACTIVATE')return false;
  return true;
 }
-

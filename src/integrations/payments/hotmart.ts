@@ -11,10 +11,15 @@ const purchaseData=z.object({
  subscription:z.object({subscriber:z.object({code:text}),plan:z.object({name:text}).optional()}).optional()
 });
 const cancellationData=z.object({product,subscriber:z.object({code:text,email:z.email()}),date_next_charge:millis.optional(),subscription:z.object({plan:z.object({name:text}).optional()}).optional()});
+function payloadHottok(payload:unknown){
+ if(!payload||typeof payload!=='object'||!('hottok' in payload))return null;
+ const value=(payload as {hottok?:unknown}).hottok;
+ return typeof value==='string'?value:null;
+}
 export class HotmartPaymentProvider implements PaymentProvider{
  private readonly token:string;
- constructor(token:string){this.token=token;}
- verify(headers:Headers){const actual=headers.get('x-hotmart-hottok');if(!actual||!this.token)return false;const a=Buffer.from(actual),b=Buffer.from(this.token);return a.length===b.length&&timingSafeEqual(a,b);}
+ constructor(token:string){this.token=token.trim();}
+ verify(headers:Headers,payload?:unknown){const actual=(headers.get('x-hotmart-hottok')??payloadHottok(payload)??'').trim();if(!actual||!this.token)return false;const a=Buffer.from(actual),b=Buffer.from(this.token);return a.length===b.length&&timingSafeEqual(a,b);}
  normalize(payload:unknown,policy:PaymentPolicy):PaymentEvent{
  const event=base.parse(payload);const occurredAt=new Date(event.creation_date).toISOString();
  if(event.event==='SUBSCRIPTION_CANCELLATION'){
