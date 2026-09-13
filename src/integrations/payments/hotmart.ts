@@ -19,6 +19,10 @@ function payloadHottok(payload:unknown){
 }
 function productAllowed(productId:string,policy:PaymentPolicy){return productId==='0'||policy.productIds.includes(productId);}
 function toIso(value:number|string){return new Date(value).toISOString();}
+function fixedAccessUntil(approvedDate:number|string|undefined,policy:PaymentPolicy){
+ if(!policy.accessDays||!Number.isInteger(policy.accessDays)||policy.accessDays<1||policy.accessDays>3660||!approvedDate)throw new Error('Access policy not configured');
+ return new Date(Date.parse(toIso(approvedDate))+policy.accessDays*86400000).toISOString();
+}
 export class HotmartPaymentProvider implements PaymentProvider{
  private readonly token:string;
  constructor(token:string){this.token=token.trim();}
@@ -36,8 +40,8 @@ export class HotmartPaymentProvider implements PaymentProvider{
  const actions:Record<string,PaymentAction>={PURCHASE_APPROVED:'ACTIVATE',PURCHASE_COMPLETE:'ACTIVATE',PURCHASE_REFUNDED:'REVOKE',PURCHASE_CHARGEBACK:'REVOKE',PURCHASE_DELAYED:'OVERDUE',PURCHASE_PROTEST:'REVIEW'};
  const action=actions[event.event]??'IGNORE';let accessUntil:string|null=null;
  if(action==='ACTIVATE'){
- if(policy.accessMode==='PROVIDER_PERIOD'){if(!data.purchase.date_next_charge)throw new Error('Access period not provided');accessUntil=toIso(data.purchase.date_next_charge);}
- else{if(!policy.accessDays||!Number.isInteger(policy.accessDays)||policy.accessDays<1||policy.accessDays>3660||!data.purchase.approved_date)throw new Error('Access policy not configured');accessUntil=new Date(Date.parse(toIso(data.purchase.approved_date))+policy.accessDays*86400000).toISOString();}
+ if(policy.accessMode==='PROVIDER_PERIOD'&&data.purchase.date_next_charge)accessUntil=toIso(data.purchase.date_next_charge);
+ else accessUntil=fixedAccessUntil(data.purchase.approved_date,policy);
  }
  return {id:event.id,type:event.event,occurredAt,productId,email:data.buyer.email.toLowerCase(),purchaseId:data.purchase.transaction,subscriptionId:data.subscription?.subscriber.code??null,plan:data.subscription?.plan?.name??'MAYORDOMO',action,accessUntil,renewalAt:data.purchase.date_next_charge?toIso(data.purchase.date_next_charge):null,purchasedAt:data.purchase.approved_date?toIso(data.purchase.approved_date):null};
  }
