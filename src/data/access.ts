@@ -4,8 +4,20 @@ import {requireUser} from './supabase';
 
 type Db=Awaited<ReturnType<typeof requireUser>>['db'];
 
+export function normalizeCheckoutUrl(value:string|undefined){
+ const raw=value?.trim();
+ if(!raw)return '';
+ const repaired=raw.replace(/https?:\/(?!\/)/gi,match=>match+'\/');
+ const candidate=repaired.match(/https?:\/\/pay\.hotmart\.com\/[^\s)]+/i)?.[0]??repaired.match(/https?:\/\/[^\s)]+/i)?.[0]??(/^pay\.hotmart\.com\//i.test(repaired)?'https://'+repaired:repaired);
+ try{
+  const url=new URL(candidate);
+  if(url.protocol!=='https:'&&url.protocol!=='http:')return '';
+  return url.toString();
+ }catch{return '';}
+}
+
 export function hotmartCheckoutUrl(){
- return process.env.HOTMART_CHECKOUT_URL?.trim() || '';
+ return normalizeCheckoutUrl(process.env.HOTMART_CHECKOUT_URL);
 }
 
 export async function claimPendingProductAccess(db:Db){
