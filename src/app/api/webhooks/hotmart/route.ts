@@ -36,6 +36,8 @@ export async function POST(request:Request){
  let payload:unknown;
  try{payload=await readJson(request,128000);}catch{logEvent('payment_webhook_invalid',{success:false,reason:'invalid_json'});return Response.json({received:false,error:'invalid_json'},{status:422});}
  if(!provider.verify(request.headers,payload))return new Response(null,{status:401});
+ const summary=payloadSummary(payload);
+ if(summary.productId==='0'){logEvent('payment_webhook_sandbox',{success:true,reason:'sandbox_product',...summary});return Response.json({received:true,status:'SANDBOX_IGNORED'});}
  try{
  const policy=hotmartPolicy();
  const event=provider.normalize(payload,policy);
