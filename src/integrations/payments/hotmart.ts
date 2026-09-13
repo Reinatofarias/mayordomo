@@ -4,14 +4,15 @@ import type {PaymentProvider,PaymentEvent,PaymentPolicy,PaymentAction} from '../
 const text=z.string().min(1).max(250);
 const millis=z.number().int().min(0).max(8640000000000000);
 const hotmartDate=z.union([millis,z.string().min(1)]);
-const base=z.object({id:text,event:text,creation_date:millis,version:z.literal('2.0.0'),data:z.record(z.string(),z.unknown())});
+const email=z.string().min(3).max(320);
+const base=z.object({id:text,event:text,creation_date:millis,version:text,data:z.unknown()});
 const product=z.object({id:z.union([z.number().int(),text])});
 const purchaseData=z.object({
- product,buyer:z.object({email:z.email()}),
+ product,buyer:z.object({email}),
  purchase:z.object({transaction:text,approved_date:hotmartDate.optional(),date_next_charge:hotmartDate.optional()}),
  subscription:z.object({subscriber:z.object({code:text}),plan:z.object({name:text}).optional()}).optional()
 });
-const cancellationData=z.object({product:product.optional(),subscriber:z.object({code:text,email:z.email().optional()}),date_next_charge:hotmartDate.optional(),subscription:z.object({product:product.optional(),date_next_charge:hotmartDate.optional(),plan:z.object({name:text}).optional()}).optional(),plan:z.object({name:text}).optional()});
+const cancellationData=z.object({product:product.optional(),subscriber:z.object({code:text,email:email.optional()}),date_next_charge:hotmartDate.optional(),subscription:z.object({product:product.optional(),date_next_charge:hotmartDate.optional(),plan:z.object({name:text}).optional()}).optional(),plan:z.object({name:text}).optional()});
 function payloadHottok(payload:unknown){
  if(!payload||typeof payload!=='object'||!('hottok' in payload))return null;
  const value=(payload as {hottok?:unknown}).hottok;

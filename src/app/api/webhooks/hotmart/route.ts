@@ -16,14 +16,14 @@ function payloadSummary(payload:unknown){
  return {eventType:typeof event==='string'?event:undefined,productId:typeof productId==='string'||typeof productId==='number'?String(productId):undefined};
 }
 function webhookInvalid(error:unknown,payload:unknown){
- const summary=payloadSummary(payload);let reason='invalid_payload';
- if(error instanceof z.ZodError)reason='invalid_payload';
+ const summary=payloadSummary(payload);let reason='invalid_payload';let issue:string|undefined;
+ if(error instanceof z.ZodError){reason='invalid_payload';issue=error.issues[0]?[...error.issues[0].path,error.issues[0].code].join('.'):'zod_error';}
  else if(error instanceof Error&&error.message==='Product not configured')reason='product_not_configured';
  else if(error instanceof Error&&error.message==='Product not provided')reason='product_not_provided';
  else if(error instanceof Error&&error.message==='Access period not provided')reason='access_period_not_provided';
  else if(error instanceof Error&&error.message==='Access policy not configured')reason='access_policy_not_configured';
- logEvent('payment_webhook_invalid',{success:false,reason,...summary});
- return Response.json({received:false,error:reason,...summary},{status:422});
+ logEvent('payment_webhook_invalid',{success:false,reason,issue,...summary});
+ return Response.json({received:false,error:reason,issue,...summary},{status:422});
 }
 function hotmartPolicy(){
  const accessMode=(process.env.HOTMART_ACCESS_MODE??'FIXED_DAYS').trim().toUpperCase();
