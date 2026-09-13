@@ -3,7 +3,7 @@ import {HotmartPaymentProvider} from '@/integrations/payments/hotmart';
 import {adminClient} from '@/data/admin';
 import {readJson} from '@/lib/request';
 import {logEvent} from '@/lib/logger';
-const policySchema=z.object({productIds:z.array(z.string().min(1)).min(1),accessMode:z.enum(['FIXED_DAYS','PROVIDER_PERIOD']).default('FIXED_DAYS'),accessDays:z.number().int().min(1).max(3660).default(30)});
+const policySchema=z.object({productIds:z.array(z.string().min(1)),accessMode:z.enum(['FIXED_DAYS','PROVIDER_PERIOD']).default('FIXED_DAYS'),accessDays:z.number().int().min(1).max(3660).default(30)});
 function payloadSummary(payload:unknown){
  if(!payload||typeof payload!=='object')return {};
  const event=(payload as {event?:unknown}).event;
