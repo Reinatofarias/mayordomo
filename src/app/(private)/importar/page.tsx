@@ -1,2 +1,4 @@
-import {getContext} from '@/data/finance';import {UploadForm} from '@/components/import-forms';
-export default async function ImportPage(){await getContext();return <><header className="page-heading"><p className="eyebrow">TU HISTORIA, EN UN LUGAR</p><h1>Subir extracto</h1><p>Revisa las columnas y confirma cada importación antes de guardar.</p></header><UploadForm/><p className="hint">XLSX: se lee la primera hoja. Los archivos originales no se conservan.</p></>;}
+﻿import {getContext} from '@/data/finance';
+import {UploadForm} from '@/components/import-forms';
+
+export default async function ImportPage(){await getContext();return <><header className="page-heading"><p className="eyebrow">TU HISTORIA, EN UN LUGAR</p><h1>Subir extracto</h1><p>Prepara una vista previa, revisa columnas y confirma solo cuando todo esté claro.</p></header><section className="import-guidance"><div><h2>Importa sin perder el control.</h2><p>El archivo se usa para detectar movimientos. Nada se guarda como transacción hasta que confirmes la vista previa.</p></div><div className="principle-card"><h3>Buenas prácticas</h3><p>Usa fechas AAAA-MM-DD, importes con punto decimal y evita mezclar monedas.</p><small>Los archivos originales no se conservan.</small></div></section><UploadForm/></>;}
