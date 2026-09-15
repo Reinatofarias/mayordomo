@@ -1,9 +1,13 @@
 import {z} from 'zod';
-import {getContext} from '@/data/finance';
+import {getCategories,getContext,getTransactions,localMonth,type getContext as getContextType} from '@/data/finance';
 import {FinancialStewardAgent,aiEnabled} from '@/ai/financial-steward';
 import {readJson,sameOrigin} from '@/lib/request';
 import {rateLimit} from '@/data/rate-limit';
 import {logEvent} from '@/lib/logger';
+import {byCategory,projection,totals} from '@/domain/finance';
+import {money,serializeMoney} from '@/domain/money';
+
+type Context=Awaited<ReturnType<typeof getContextType>>;
 
 function aiErrorInfo(error:unknown){
  const record=error&&typeof error==='object'?error as Record<string,unknown>:{};
@@ -15,6 +19,32 @@ function aiErrorInfo(error:unknown){
   code:typeof record.code==='string'?record.code:undefined,
   model:process.env.AI_MODEL
  };
+}
+
+function formatMinor(amountMinor:string|bigint,currency:string,locale='es-MX'){
+ const value=serializeMoney(money(typeof amountMinor==='bigint'?amountMinor:BigInt(amountMinor),currency));
+ return new Intl.NumberFormat(locale,{style:'currency',currency}).format(Number(value.amountDecimal));
+}
+
+async function deterministicFallback(c:Context,question:string){
+ const month=localMonth(c.profile.timezone);
+ const [transactions,categories]=await Promise.all([getTransactions(c,month),getCategories(c)]);
+ const total=totals(transactions,c.profile.currency);
+ const categoryNames=new Map(categories.map(category=>[category.id,category.name]));
+ const categoryTotals=Object.entries(byCategory(transactions,c.profile.currency)).sort((a,b)=>Number(BigInt(b[1])-BigInt(a[1]))).slice(0,5);
+ const expenses=formatMinor(total.expenses.amountMinor,c.profile.currency,c.profile.locale);
+ const income=formatMinor(total.income.amountMinor,c.profile.currency,c.profile.locale);
+ const net=formatMinor(total.net.amountMinor,c.profile.currency,c.profile.locale);
+ const lower=question.toLowerCase();
+ if(!transactions.length)return `Ahora mismo no veo movimientos registrados para ${month}. Para que MAYORDOMO pueda analizar tus gastos, registra al menos 2 o 3 movimientos en Movimientos y vuelve a preguntar.\n\nMientras tanto, tu perfil indica ingresos estimados de ${formatMinor(c.profile.monthly_income_minor,c.profile.currency,c.profile.locale)} y gastos fijos estimados de ${formatMinor(c.profile.fixed_expenses_minor,c.profile.currency,c.profile.locale)}.`;
+ const topLine=categoryTotals.length?categoryTotals.map(([id,amount],index)=>`${index+1}. ${categoryNames.get(id)??'Categoría'}: ${formatMinor(amount,c.profile.currency,c.profile.locale)}`).join('\n'):'No hay gastos por categoría en este mes.';
+ if(lower.includes('categor'))return `La categoría con más peso este mes es ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} con ${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)}`:'no identificable todavía'}.\n\nTop categorías de gasto:\n${topLine}\n\nTotal gastado en ${month}: ${expenses}.`;
+ if(lower.includes('accion')||lower.includes('acciones')||lower.includes('prudente'))return `Con los movimientos registrados en ${month}, puedes avanzar con estas tres acciones prudentes:\n\n1. Revisa la categoría más alta antes de hacer nuevos gastos: ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} (${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)})`:'todavía faltan categorías suficientes'}.\n2. Compara tu gasto del mes (${expenses}) con tus ingresos registrados (${income}) y decide un límite semanal realista.\n3. Registra cada movimiento pequeño durante 7 días; eso mejora mucho la claridad antes de ajustar presupuesto.\n\nEsto es información educativa; tú decides los cambios.`;
+ const now=new Date();
+ const day=Number(new Intl.DateTimeFormat('en',{day:'numeric',timeZone:c.profile.timezone}).format(now));
+ const [year,monthNumber]=month.split('-').map(Number);
+ const projected=formatMinor(projection(BigInt(total.expenses.amountMinor),day,new Date(Date.UTC(year,monthNumber,0)).getUTCDate()),c.profile.currency,c.profile.locale);
+ return `Así van tus gastos en ${month}:\n\n- Ingresos registrados: ${income}\n- Gastos registrados: ${expenses}\n- Balance del mes: ${net}\n- Proyección simple de gastos si mantienes el ritmo actual: ${projected}\n\nCategorías principales:\n${topLine}\n\nEsta es una lectura automática de tus datos registrados mientras revisamos la conexión con Gemini.`;
 }
 
 export async function POST(request:Request){
@@ -46,7 +76,7 @@ export async function POST(request:Request){
  const {error}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'assistant',parts:{text}});
  if(error)throw new Error('Persistence unavailable');
  const usage=await result.totalUsage;logEvent('ai_complete',{durationMs:Date.now()-started,inputTokens:usage.inputTokens,outputTokens:usage.outputTokens,success:true,model:process.env.AI_MODEL});
- }catch(error){const info=aiErrorInfo(error);logEvent('ai_failed',{durationMs:Date.now()-started,success:false,...info});controller.enqueue(encoder.encode('\nNo pude completar la respuesta. Ya registramos el error para revisión. Inténtalo nuevamente en unos minutos.'));}
+ }catch(error){const info=aiErrorInfo(error);logEvent('ai_failed',{durationMs:Date.now()-started,success:false,...info});try{text=await deterministicFallback(c,input.message);controller.enqueue(encoder.encode(text));const {error:persistError}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'assistant',parts:{text}});if(persistError)throw new Error('Fallback persistence unavailable');logEvent('ai_fallback_complete',{durationMs:Date.now()-started,success:true,model:process.env.AI_MODEL});}catch(fallbackError){logEvent('ai_fallback_failed',{durationMs:Date.now()-started,success:false,...aiErrorInfo(fallbackError)});controller.enqueue(encoder.encode('\nNo pude completar la respuesta. Ya registramos el error para revisión. Inténtalo nuevamente en unos minutos.'));}}
  finally{controller.close();}
  }}),{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
  }catch(error){logEvent('ai_request_failed',{success:false,...aiErrorInfo(error)});return Response.json({error:'No pudimos completar la solicitud. Revisa tu sesión e inténtalo nuevamente.'},{status:400});}
