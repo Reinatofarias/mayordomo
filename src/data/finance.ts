@@ -4,8 +4,8 @@ import {redirect} from 'next/navigation';
 import {requireUser} from './supabase';
 import {claimPendingProductAccess,hasProductAccess} from './access';
 const minor=z.string().regex(/^-?\d+$/);
-export const profileSchema=z.object({id:z.uuid(),name:z.string(),country:z.string(),currency:z.string(),locale:z.string(),timezone:z.string(),monthly_income_minor:minor,fixed_expenses_minor:minor,opening_debt_minor:minor,reserve_minor:minor,objective:z.string().nullable(),onboarding_completed_at:z.string().nullable()});
-const profileFields='id,name,country,currency,locale,timezone,monthly_income_minor::text,fixed_expenses_minor::text,opening_debt_minor::text,reserve_minor::text,objective,onboarding_completed_at';
+export const profileSchema=z.object({id:z.uuid(),name:z.string(),phone:z.string().nullable(),country:z.string(),currency:z.string(),locale:z.string(),timezone:z.string(),monthly_income_minor:minor,fixed_expenses_minor:minor,opening_debt_minor:minor,reserve_minor:minor,objective:z.string().nullable(),onboarding_completed_at:z.string().nullable()});
+const profileFields='id,name,phone,country,currency,locale,timezone,monthly_income_minor::text,fixed_expenses_minor::text,opening_debt_minor::text,reserve_minor::text,objective,onboarding_completed_at';
 export async function getContext(requireAccess=true){
  const {db,user}=await requireUser();
  const {data,error}=await db.from('profiles').select(profileFields).eq('id',user.id).single();
