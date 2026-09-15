@@ -7,7 +7,8 @@ import {getPlan} from '@/data/plan';
 import {totals,byCategory,budgetStatus,duplicates,recurring,anomalies,projection} from '@/domain/finance';
 import {logEvent} from '@/lib/logger';
 type Context=Awaited<ReturnType<typeof getContext>>;
-export function aiEnabled(){return process.env.AI_ENABLED==='true'&&process.env.AI_DATA_POLICY_APPROVED==='true'&&process.env.AI_PROVIDER==='google'&&Boolean(process.env.AI_MODEL&&process.env.GOOGLE_GENERATIVE_AI_API_KEY);}
+export function googleApiKey(){return process.env.GOOGLE_GENERATIVE_AI_API_KEY??process.env.GEMINI_API_KEY??process.env.GOOGLE_API_KEY;}
+export function aiEnabled(){return process.env.AI_ENABLED==='true'&&process.env.AI_DATA_POLICY_APPROVED==='true'&&process.env.AI_PROVIDER==='google'&&Boolean(process.env.AI_MODEL&&googleApiKey());}
 export function createFinancialTools(c:Context){
  const month=localMonth(c.profile.timezone);const monthSchema=z.object({month:z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional()});
  const noInput=z.object({});
@@ -35,7 +36,7 @@ export function createFinancialTools(c:Context){
 export function FinancialStewardAgent(c:Context){
  if(!aiEnabled())throw new Error('MAYORDOMO no está disponible temporalmente.');
  return new ToolLoopAgent({
- model:createGoogle()(process.env.AI_MODEL!),
+ model:createGoogle({apiKey:googleApiKey()})(process.env.AI_MODEL!),
  stopWhen:stepCountIs(6),maxOutputTokens:1200,
  instructions:`Eres MAYORDOMO, un asistente de organización y educación financiera. Habla español latino neutro, con calma, empatía y brevedad. No eres banco ni asesor de inversión.
  Consulta herramientas antes de afirmar cifras. Nunca calcules valores financieros: usa los resultados determinísticos. Si faltan datos, dilo. Las estimaciones iniciales no son movimientos reales ni saldo bancario.
