@@ -36,7 +36,7 @@ export function Chat({conversationId}:{conversationId:string}){
    </div>
    <div className="chat-window" aria-live="polite" aria-busy={pending}>
     {messages.length===0&&<div className="chat-empty"><strong>Empieza con una pregunta concreta.</strong><p>Puedo leer tus movimientos, detectar categorías fuertes y proponer próximos pasos educativos sin guardar cambios por ti.</p></div>}
-    {messages.map((m,i)=><article key={i} className="chat-message" data-role={m.role}><div className="chat-avatar">{m.role==='user'?'Tú':'M'}</div><div className="chat-bubble"><strong>{m.role==='user'?'Tú':'MAYORDOMO'}</strong><p>{m.text||'Consultando tu información…'}</p></div></article>)}
+    {messages.map((m,i)=><article key={i} className="chat-message" data-role={m.role}><div className="chat-avatar">{m.role==='user'?'Tú':'M'}</div><div className="chat-bubble"><strong>{m.role==='user'?'Tú':'MAYORDOMO'}</strong>{m.text?<p>{m.text}</p>:<div className="typing-indicator" aria-label="MAYORDOMO está escribiendo"><span>Escribiendo</span><i aria-hidden="true"/><i aria-hidden="true"/><i aria-hidden="true"/></div>}</div></article>)}
    </div>
    <div className="chat-suggestions" aria-label="Preguntas sugeridas">{suggestions.map(item=><button key={item} type="button" onClick={()=>setMessage(item)} disabled={pending}>{item}</button>)}</div>
    <form onSubmit={send} className="chat-form">
