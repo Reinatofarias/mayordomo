@@ -1,4 +1,4 @@
-﻿# MAYORDOMO QA manual antes do lançamento controlado
+# MAYORDOMO QA manual antes do lançamento controlado
 
 Use este roteiro depois do deploy para validar o MVP com uma conta nova e, quando possível, com uma conta que já tenha dados.
 
@@ -89,12 +89,16 @@ Com IA desabilitada ou falhando:
 - Testar cancelamento/refund/chargeback em sandbox.
 - Confirmar que evento antigo não reativa acesso revogado.
 
-## 11. WhatsApp
+## 11. Suporte humano e operacao
 
-- Enviar webhook válido.
-- Confirmar deduplicação por `externalId`.
-- Confirmar que evento fica no inbox privado.
-- Confirmar que payload inválido é rejeitado.
+- Abrir `/ayuda` com uma conta comum.
+- Enviar uma pergunta simples e confirmar resposta inicial do MAYORDOMO.
+- Enviar uma mensagem com tema de pagamento, erro ou pedido de humano e confirmar notificacao interna de revisao humana.
+- Entrar com o admin configurado em `SUPPORT_ADMIN_EMAILS`.
+- Abrir `/admin/soporte`.
+- Responder a conversa e confirmar que o usuario ve a mensagem em `/ayuda`.
+- Marcar o caso como resolvido e confirmar notificacao interna.
+- Se `SUPPORT_EMAIL_WEBHOOK_URL` estiver configurado, confirmar que o webhook/e-mail chegou quando houve escalonamento humano.
 
 ## 12. Mobile e acessibilidade
 

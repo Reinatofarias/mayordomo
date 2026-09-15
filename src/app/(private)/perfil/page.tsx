@@ -3,7 +3,6 @@ import {getContext} from '@/data/finance';
 import {hasProductAccess,hotmartCheckoutUrl} from '@/data/access';
 import {signOut} from '@/app/auth-actions';
 import {refreshHotmartAccess} from '@/app/acceso/pendiente/actions';
-import {SupportForm} from '@/components/support-form';
 import {ProfileForm} from '@/components/profile-form';
 import {Button} from '@/components/ui/button';
 import {PrincipleCard} from '@/components/principle-card';
@@ -66,7 +65,7 @@ export default async function Profile(){
    <p className="hint">Para cancelar o cambiar datos de pago, usa el portal de Hotmart. Si compraste con otro correo, solicita soporte.</p>
    <Link href="#soporte">Solicitar ayuda →</Link>
   </section>
-  <section className="section" id="soporte"><h2>Soporte</h2><p>Cuéntanos qué ocurrió. Responderemos con una orientación práctica y respetuosa.</p><SupportForm/>{requests?.length?<div className="support-history"><h3>Solicitudes recientes</h3>{requests.map(r=><article key={r.id}><strong>{r.subject}</strong><span>{r.status==='OPEN'?'Recibida':r.status} · {formatDate(r.created_at,c.profile.locale)}</span></article>)}</div>:<p className="hint">Aún no tienes solicitudes registradas.</p>}</section>
+  <section className="section" id="soporte"><h2>Soporte</h2><p>Abre el chat de ayuda. Primero respondera MAYORDOMO; si hace falta una persona, el caso queda marcado para revision humana.</p><div className="page-actions"><Button asChild><Link href="/ayuda">Abrir chat de soporte</Link></Button></div>{requests?.length?<div className="support-history"><h3>Solicitudes recientes</h3>{requests.map(r=><article key={r.id}><strong>{r.subject}</strong><span>{r.status==='OPEN'?'Recibida':r.status} · {formatDate(r.created_at,c.profile.locale)}</span></article>)}</div>:<p className="hint">Aun no tienes solicitudes registradas.</p>}</section>
   <section className="section"><form action={signOut}><Button variant="outline">Cerrar sesión</Button></form></section>
  </>;
 }
