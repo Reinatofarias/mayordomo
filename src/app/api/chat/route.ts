@@ -8,6 +8,14 @@ import {byCategory,projection,totals} from '@/domain/finance';
 import {money,serializeMoney} from '@/domain/money';
 
 type Context=Awaited<ReturnType<typeof getContextType>>;
+const CHAT_TOTAL_TIMEOUT_MS=25_000;
+const CHAT_FIRST_CHUNK_TIMEOUT_MS=12_000;
+const CHAT_CHUNK_TIMEOUT_MS=8_000;
+const USAGE_TIMEOUT_MS=1_500;
+
+function withTimeout<T>(promise:PromiseLike<T>,ms:number){
+ return Promise.race([promise,new Promise<undefined>(resolve=>setTimeout(()=>resolve(undefined),ms))]);
+}
 
 function aiErrorInfo(error:unknown){
  const record=error&&typeof error==='object'?error as Record<string,unknown>:{};
@@ -66,7 +74,8 @@ export async function POST(request:Request){
  const started=Date.now();
  const result=await FinancialStewardAgent(c).stream({
   messages:[...messages,{role:'user',content:input.message}],
-  abortSignal:request.signal
+  abortSignal:request.signal,
+  timeout:{totalMs:CHAT_TOTAL_TIMEOUT_MS,firstChunkMs:CHAT_FIRST_CHUNK_TIMEOUT_MS,chunkMs:CHAT_CHUNK_TIMEOUT_MS,toolMs:CHAT_CHUNK_TIMEOUT_MS}
  });
  const encoder=new TextEncoder();
  return new Response(new ReadableStream({async start(controller){
@@ -75,7 +84,7 @@ export async function POST(request:Request){
  for await(const chunk of result.textStream){text+=chunk;controller.enqueue(encoder.encode(chunk));}
  const {error}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'assistant',parts:{text}});
  if(error)throw new Error('Persistence unavailable');
- const usage=await result.totalUsage;logEvent('ai_complete',{durationMs:Date.now()-started,inputTokens:usage.inputTokens,outputTokens:usage.outputTokens,success:true,model:process.env.AI_MODEL});
+ const usage=await withTimeout(result.totalUsage,USAGE_TIMEOUT_MS);logEvent('ai_complete',{durationMs:Date.now()-started,inputTokens:usage?.inputTokens,outputTokens:usage?.outputTokens,success:true,model:process.env.AI_MODEL});
  }catch(error){const info=aiErrorInfo(error);logEvent('ai_failed',{durationMs:Date.now()-started,success:false,...info});try{text=await deterministicFallback(c,input.message);controller.enqueue(encoder.encode(text));const {error:persistError}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'assistant',parts:{text}});if(persistError)throw new Error('Fallback persistence unavailable');logEvent('ai_fallback_complete',{durationMs:Date.now()-started,success:true,model:process.env.AI_MODEL});}catch(fallbackError){logEvent('ai_fallback_failed',{durationMs:Date.now()-started,success:false,...aiErrorInfo(fallbackError)});controller.enqueue(encoder.encode('\nNo pude completar la respuesta. Ya registramos el error para revisión. Inténtalo nuevamente en unos minutos.'));}}
  finally{controller.close();}
  }}),{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});

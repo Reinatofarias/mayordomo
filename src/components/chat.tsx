@@ -2,6 +2,8 @@
 import {useState,type FormEvent} from 'react';
 import {Button} from '@/components/ui/button';
 
+const CHAT_CLIENT_TIMEOUT_MS=35_000;
+
 const suggestions=[
  '¿Cómo van mis gastos este mes?',
  '¿Qué categoría pesa más en mi presupuesto?',
@@ -13,13 +15,15 @@ export function Chat({conversationId}:{conversationId:string}){
  async function send(event:FormEvent<HTMLFormElement>){
  event.preventDefault();if(pending)return;const text=message.trim();if(!text)return;
  setPending(true);setError('');setMessages(old=>[...old,{role:'user',text},{role:'assistant',text:''}]);
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),CHAT_CLIENT_TIMEOUT_MS);
  try{
- const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,conversationId,consent})});
+ const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,conversationId,consent}),signal:controller.signal});
  if(!response.ok||!response.body)throw new Error();
  const reader=response.body.getReader(),decoder=new TextDecoder();let answer='';
  while(true){const {done,value}=await reader.read();if(done)break;answer+=decoder.decode(value,{stream:true});const current=answer;setMessages(old=>[...old.slice(0,-1),{role:'assistant',text:current}]);}
  setMessage('');
- }catch{setMessages(old=>old.at(-1)?.role==='assistant'&&old.at(-1)?.text===''?old.slice(0,-1):old);setError('No pudimos completar la respuesta. Inténtalo nuevamente.');}finally{setPending(false);}
+ }catch(error){setMessages(old=>old.at(-1)?.role==='assistant'&&old.at(-1)?.text===''?old.slice(0,-1):old);setError(error instanceof DOMException&&error.name==='AbortError'?'La respuesta tardó demasiado. Inténtalo nuevamente.':'No pudimos completar la respuesta. Inténtalo nuevamente.');}finally{clearTimeout(timeout);setPending(false);}
  }
  return <section className="chat-shell" aria-label="Conversación con MAYORDOMO">
   <div className="chat-panel">
