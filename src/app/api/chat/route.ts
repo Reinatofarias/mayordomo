@@ -1,4 +1,4 @@
-import {z} from 'zod';
+﻿import {z} from 'zod';
 import {getCategories,getContext,getTransactions,localMonth,type getContext as getContextType} from '@/data/finance';
 import {FinancialStewardAgent,aiEnabled} from '@/ai/financial-steward';
 import {readJson,sameOrigin} from '@/lib/request';
@@ -20,18 +20,19 @@ function withTimeout<T>(promise:PromiseLike<T>,ms:number){
 function aiErrorInfo(error:unknown){
  const record=error&&typeof error==='object'?error as Record<string,unknown>:{};
  const message=error instanceof Error?error.message:typeof error==='string'?error:'unknown';
- return {
-  errorName:error instanceof Error?error.name:typeof record.name==='string'?record.name:'AIError',
-  errorMessage:message.slice(0,220),
-  statusCode:typeof record.statusCode==='number'?record.statusCode:undefined,
-  code:typeof record.code==='string'?record.code:undefined,
-  model:process.env.AI_MODEL
- };
+ return {errorName:error instanceof Error?error.name:typeof record.name==='string'?record.name:'AIError',errorMessage:message.slice(0,220),statusCode:typeof record.statusCode==='number'?record.statusCode:undefined,code:typeof record.code==='string'?record.code:undefined,model:process.env.AI_MODEL};
 }
 
 function formatMinor(amountMinor:string|bigint,currency:string,locale='es-MX'){
  const value=serializeMoney(money(typeof amountMinor==='bigint'?amountMinor:BigInt(amountMinor),currency));
  return new Intl.NumberFormat(locale,{style:'currency',currency}).format(Number(value.amountDecimal));
+}
+
+async function principleLine(c:Context,question:string){
+ const lower=question.toLowerCase();
+ const theme=lower.includes('deuda')?'deuda':lower.includes('ahorr')||lower.includes('reserva')?'ahorro':lower.includes('don')||lower.includes('diezm')?'generosidad':lower.includes('impuls')||lower.includes('compr')?'dominio propio':'prudencia';
+ const {data}=await c.db.from('biblical_principles').select('reference,principle,application,risk_context').eq('theme',theme).eq('active',true).maybeSingle();
+ return data?`\n\nPrincipio bíblico para revisar con calma: ${data.reference}. ${data.principle} ${data.application}\n${data.risk_context}`:'';
 }
 
 async function deterministicFallback(c:Context,question:string){
@@ -44,15 +45,16 @@ async function deterministicFallback(c:Context,question:string){
  const income=formatMinor(total.income.amountMinor,c.profile.currency,c.profile.locale);
  const net=formatMinor(total.net.amountMinor,c.profile.currency,c.profile.locale);
  const lower=question.toLowerCase();
- if(!transactions.length)return `Ahora mismo no veo movimientos registrados para ${month}. Para que MAYORDOMO pueda analizar tus gastos, registra al menos 2 o 3 movimientos en Movimientos y vuelve a preguntar.\n\nMientras tanto, tu perfil indica ingresos estimados de ${formatMinor(c.profile.monthly_income_minor,c.profile.currency,c.profile.locale)} y gastos fijos estimados de ${formatMinor(c.profile.fixed_expenses_minor,c.profile.currency,c.profile.locale)}.`;
+ const principle=await principleLine(c,question);
+ if(!transactions.length)return `Ahora mismo no veo movimientos registrados para ${month}. Para que MAYORDOMO pueda analizar tus gastos, registra al menos 2 o 3 movimientos en Movimientos y vuelve a preguntar.\n\nMientras tanto, tu perfil indica ingresos estimados de ${formatMinor(c.profile.monthly_income_minor,c.profile.currency,c.profile.locale)} y gastos fijos estimados de ${formatMinor(c.profile.fixed_expenses_minor,c.profile.currency,c.profile.locale)}.${principle}`;
  const topLine=categoryTotals.length?categoryTotals.map(([id,amount],index)=>`${index+1}. ${categoryNames.get(id)??'Categoría'}: ${formatMinor(amount,c.profile.currency,c.profile.locale)}`).join('\n'):'No hay gastos por categoría en este mes.';
- if(lower.includes('categor'))return `La categoría con más peso este mes es ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} con ${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)}`:'no identificable todavía'}.\n\nTop categorías de gasto:\n${topLine}\n\nTotal gastado en ${month}: ${expenses}.`;
- if(lower.includes('accion')||lower.includes('acciones')||lower.includes('prudente'))return `Con los movimientos registrados en ${month}, puedes avanzar con estas tres acciones prudentes:\n\n1. Revisa la categoría más alta antes de hacer nuevos gastos: ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} (${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)})`:'todavía faltan categorías suficientes'}.\n2. Compara tu gasto del mes (${expenses}) con tus ingresos registrados (${income}) y decide un límite semanal realista.\n3. Registra cada movimiento pequeño durante 7 días; eso mejora mucho la claridad antes de ajustar presupuesto.\n\nEsto es información educativa; tú decides los cambios.`;
+ if(lower.includes('categor'))return `La categoría con más peso este mes es ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} con ${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)}`:'no identificable todavía'}.\n\nTop categorías de gasto:\n${topLine}\n\nTotal gastado en ${month}: ${expenses}.${principle}`;
+ if(lower.includes('accion')||lower.includes('acciones')||lower.includes('prudente'))return `Con los movimientos registrados en ${month}, puedes avanzar con estas tres acciones prudentes:\n\n1. Revisa la categoría más alta antes de hacer nuevos gastos: ${categoryTotals[0]?`${categoryNames.get(categoryTotals[0][0])??'Categoría'} (${formatMinor(categoryTotals[0][1],c.profile.currency,c.profile.locale)})`:'todavía faltan categorías suficientes'}.\n2. Compara tu gasto del mes (${expenses}) con tus ingresos registrados (${income}) y decide un límite semanal realista.\n3. Registra cada movimiento pequeño durante 7 días; eso mejora mucho la claridad antes de ajustar presupuesto.\n\nEsto es información educativa; tú decides los cambios.${principle}`;
  const now=new Date();
  const day=Number(new Intl.DateTimeFormat('en',{day:'numeric',timeZone:c.profile.timezone}).format(now));
  const [year,monthNumber]=month.split('-').map(Number);
  const projected=formatMinor(projection(BigInt(total.expenses.amountMinor),day,new Date(Date.UTC(year,monthNumber,0)).getUTCDate()),c.profile.currency,c.profile.locale);
- return `Así van tus gastos en ${month}:\n\n- Ingresos registrados: ${income}\n- Gastos registrados: ${expenses}\n- Balance del mes: ${net}\n- Proyección simple de gastos si mantienes el ritmo actual: ${projected}\n\nCategorías principales:\n${topLine}\n\nEsta es una lectura automática de tus datos registrados mientras revisamos la conexión con Gemini.`;
+ return `Así van tus gastos en ${month}:\n\n- Ingresos registrados: ${income}\n- Gastos registrados: ${expenses}\n- Balance del mes: ${net}\n- Proyección simple de gastos si mantienes el ritmo actual: ${projected}\n\nCategorías principales:\n${topLine}\n\nEsta es una lectura automática de tus datos registrados mientras revisamos la conexión con Gemini.${principle}`;
 }
 
 export async function POST(request:Request){
@@ -72,11 +74,7 @@ export async function POST(request:Request){
  const {error:saveError}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'user',parts:{text:input.message}});
  if(saveError)throw new Error('Message unavailable');
  const started=Date.now();
- const result=await FinancialStewardAgent(c).stream({
-  messages:[...messages,{role:'user',content:input.message}],
-  abortSignal:request.signal,
-  timeout:{totalMs:CHAT_TOTAL_TIMEOUT_MS,firstChunkMs:CHAT_FIRST_CHUNK_TIMEOUT_MS,chunkMs:CHAT_CHUNK_TIMEOUT_MS,toolMs:CHAT_CHUNK_TIMEOUT_MS}
- });
+ const result=await FinancialStewardAgent(c).stream({messages:[...messages,{role:'user',content:input.message}],abortSignal:request.signal,timeout:{totalMs:CHAT_TOTAL_TIMEOUT_MS,firstChunkMs:CHAT_FIRST_CHUNK_TIMEOUT_MS,chunkMs:CHAT_CHUNK_TIMEOUT_MS,toolMs:CHAT_CHUNK_TIMEOUT_MS}});
  const encoder=new TextEncoder();
  return new Response(new ReadableStream({async start(controller){
  let text='';
