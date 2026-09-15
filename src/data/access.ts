@@ -8,7 +8,9 @@ export function normalizeCheckoutUrl(value:string|undefined){
  const raw=value?.trim();
  if(!raw)return '';
  const repaired=raw.replace(/https?:\/(?!\/)/gi,match=>match+'\/');
- const candidate=repaired.match(/https?:\/\/pay\.hotmart\.com\/[^\s)]+/i)?.[0]??repaired.match(/https?:\/\/[^\s)]+/i)?.[0]??(/^pay\.hotmart\.com\//i.test(repaired)?'https://'+repaired:repaired);
+ const hotmartPath='pay.hotmart.com/';
+ const bareHotmart=repaired.match(new RegExp(`${hotmartPath}[^\\s)\\]\\\\[<>"']+`,'i'))?.[0];
+ const candidate=repaired.match(/https?:\/\/pay\.hotmart\.com\/[^\s)\]\\[<>"']+/i)?.[0]??(bareHotmart?'https://'+bareHotmart:repaired.match(/https?:\/\/[^\s)\]\\[<>"']+/i)?.[0]??repaired);
  try{
   const url=new URL(candidate);
   if(url.protocol!=='https:'&&url.protocol!=='http:')return '';

@@ -4,6 +4,19 @@ import {FinancialStewardAgent,aiEnabled} from '@/ai/financial-steward';
 import {readJson,sameOrigin} from '@/lib/request';
 import {rateLimit} from '@/data/rate-limit';
 import {logEvent} from '@/lib/logger';
+
+function aiErrorInfo(error:unknown){
+ const record=error&&typeof error==='object'?error as Record<string,unknown>:{};
+ const message=error instanceof Error?error.message:typeof error==='string'?error:'unknown';
+ return {
+  errorName:error instanceof Error?error.name:typeof record.name==='string'?record.name:'AIError',
+  errorMessage:message.slice(0,220),
+  statusCode:typeof record.statusCode==='number'?record.statusCode:undefined,
+  code:typeof record.code==='string'?record.code:undefined,
+  model:process.env.AI_MODEL
+ };
+}
+
 export async function POST(request:Request){
  if(!sameOrigin(request))return Response.json({error:'Solicitud no válida.'},{status:403});
  if(!aiEnabled())return Response.json({error:'MAYORDOMO no está disponible temporalmente.'},{status:503});
@@ -21,7 +34,10 @@ export async function POST(request:Request){
  const {error:saveError}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'user',parts:{text:input.message}});
  if(saveError)throw new Error('Message unavailable');
  const started=Date.now();
- const result=await FinancialStewardAgent(c).stream({messages:[...messages,{role:'user',content:input.message}],abortSignal:request.signal});
+ const result=await FinancialStewardAgent(c).stream({
+  messages:[...messages,{role:'user',content:input.message}],
+  abortSignal:request.signal
+ });
  const encoder=new TextEncoder();
  return new Response(new ReadableStream({async start(controller){
  let text='';
@@ -29,9 +45,9 @@ export async function POST(request:Request){
  for await(const chunk of result.textStream){text+=chunk;controller.enqueue(encoder.encode(chunk));}
  const {error}=await c.db.from('ai_messages').insert({user_id:c.user.id,conversation_id:input.conversationId,role:'assistant',parts:{text}});
  if(error)throw new Error('Persistence unavailable');
- const usage=await result.totalUsage;logEvent('ai_complete',{durationMs:Date.now()-started,inputTokens:usage.inputTokens,outputTokens:usage.outputTokens,success:true});
- }catch{logEvent('ai_failed',{durationMs:Date.now()-started,success:false});controller.enqueue(encoder.encode('\nNo pude completar la respuesta. Inténtalo nuevamente.'));}
+ const usage=await result.totalUsage;logEvent('ai_complete',{durationMs:Date.now()-started,inputTokens:usage.inputTokens,outputTokens:usage.outputTokens,success:true,model:process.env.AI_MODEL});
+ }catch(error){const info=aiErrorInfo(error);logEvent('ai_failed',{durationMs:Date.now()-started,success:false,...info});controller.enqueue(encoder.encode('\nNo pude completar la respuesta. Ya registramos el error para revisión. Inténtalo nuevamente en unos minutos.'));}
  finally{controller.close();}
  }}),{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
- }catch{logEvent('ai_request_failed',{success:false});return Response.json({error:'No pudimos completar la solicitud. Revisa tu sesión e inténtalo nuevamente.'},{status:400});}
+ }catch(error){logEvent('ai_request_failed',{success:false,...aiErrorInfo(error)});return Response.json({error:'No pudimos completar la solicitud. Revisa tu sesión e inténtalo nuevamente.'},{status:400});}
 }
