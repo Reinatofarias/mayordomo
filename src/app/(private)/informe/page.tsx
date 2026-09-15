@@ -1,12 +1,13 @@
-import {getContext,getTransactions,getCategories,localMonth} from '@/data/finance';
+﻿import {getContext,getTransactions,getCategories,localMonth} from '@/data/finance';
 import {getPlan} from '@/data/plan';
 import {totals,byCategory,anomalies,budgetStatus} from '@/domain/finance';
 import {displayMoney} from '@/i18n/es';
 import {Button} from '@/components/ui/button';
+import {PrincipleCard} from '@/components/principle-card';
 export default async function Report({searchParams}:{searchParams:Promise<{mes?:string}>}){
  const c=await getContext();const {mes}=await searchParams;const month=mes&&/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)?mes:localMonth(c.profile.timezone);
  const [year,m]=month.split('-').map(Number);const previous=new Date(Date.UTC(year,m-2,1)).toISOString().slice(0,7);
- const [rows,previousRows,categories,plan,principles]=await Promise.all([getTransactions(c,month),getTransactions(c,previous),getCategories(c),getPlan(c),c.db.from('biblical_principles').select('reference,principle,application').eq('theme','mayordomía').eq('active',true).single()]);
+ const [rows,previousRows,categories,plan,principles]=await Promise.all([getTransactions(c,month),getTransactions(c,previous),getCategories(c),getPlan(c),c.db.from('biblical_principles').select('reference,principle,application,risk_context').eq('theme','mayordomía').eq('active',true).single()]);
  const current=totals(rows,c.profile.currency),before=totals(previousRows,c.profile.currency);
  const format=(minor:string)=>displayMoney(minor,c.profile.currency,c.profile.locale);
  const debt=plan.debts.filter(d=>d.currency===c.profile.currency).reduce((sum,d)=>sum+BigInt(d.balance_minor),0n);
@@ -22,6 +23,5 @@ export default async function Report({searchParams}:{searchParams:Promise<{mes?:
  <section className="section"><h2>Principales categorías</h2>{spending.length?<ul className="transaction-list">{spending.map(([id,value])=><li key={id}><span>{categories.find(cat=>cat.id===id)?.name??'Otros'}</span><span>{format(value)}</span></li>)}</ul>:<p>Aún no hay gastos registrados en este período.</p>}</section>
  <section className="section"><h2>Lo que merece atención</h2><p>{budget?budgetStatus(BigInt(current.expenses.amountMinor),BigInt(budget.amount_minor)).status:'Define un presupuesto para comparar tus gastos con tu plan.'}</p><p>{changes.length?changes.length+' categorías superan en más de 30 % los gastos registrados del mes anterior.':'Continúa registrando para reconocer cambios con más claridad.'}</p></section>
  <section className="section"><h2>Tres acciones para el próximo mes</h2><ol className="action-list"><li>Revisa si faltan movimientos o hay duplicados.</li><li>Ajusta un límite de gasto según tus necesidades reales.</li><li>Elige un paso pequeño hacia tu objetivo: {c.profile.objective}.</li></ol></section>
- {principles.data&&<blockquote><p>{principles.data.principle}</p><cite>{principles.data.reference} · Paráfrasis</cite><p className="hint">{principles.data.application}</p></blockquote>}</>;
+ {principles.data&&<PrincipleCard reference={principles.data.reference} principle={principles.data.principle} application={principles.data.application} riskContext={principles.data.risk_context}/>}</>;
 }
-
