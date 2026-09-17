@@ -28,5 +28,5 @@ export async function updateProfile(_previous:FormState,form:FormData):Promise<F
  const {error}=await c.db.from('profiles').update({name:parsed.data.name,phone:parsed.data.phone??'',country:country.code,currency:parsed.data.currency,locale,timezone:parsed.data.timezone}).eq('id',c.user.id);
  if(error)return {error:'No pudimos actualizar tu perfil. Intentalo de nuevo.'};
  revalidatePath('/perfil');revalidatePath('/hoy');revalidatePath('/movimientos');revalidatePath('/plan');revalidatePath('/informe');
- return {message:'Perfil actualizado. MAYORDOMO usara estos datos para personalizar tu experiencia.'};
+ return {message:'Perfil actualizado. Las proximas pantallas y nuevos registros usaran esta configuracion.'};
 }
