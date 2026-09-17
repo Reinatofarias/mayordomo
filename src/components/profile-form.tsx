@@ -11,8 +11,8 @@ import {Label} from '@/components/ui/label';
 const currencies=currencyOptions();
 
 const copy={
- pt:{name:'Nome',phone:'Telefone',country:'PaÃ­s',locale:'Idioma e formato',currency:'Moeda principal',timezone:'Fuso horÃ¡rio',optional:'Opcional',localeHint:'Ajusta formato de datas, nÃºmeros e moeda. Os textos principais da plataforma aparecem em portuguÃªs quando disponÃ­veis.',currencyHint:'Novos movimentos, planos e importaÃ§Ãµes usarÃ£o esta moeda. Registros anteriores conservam a moeda em que foram criados.',timezoneHint:'Exemplo: America/Mexico_City, America/Sao_Paulo ou America/New_York.',save:'Salvar perfil',saving:'Salvando...'},
- es:{name:'Nombre',phone:'TelÃ©fono',country:'PaÃ­s',locale:'Idioma y formato',currency:'Moneda principal',timezone:'Zona horaria',optional:'Opcional',localeHint:'Ajusta formato de fechas, nÃºmeros y moneda. Los textos principales de la plataforma se mostrarÃ¡n en tu idioma cuando estÃ©n disponibles.',currencyHint:'Los nuevos movimientos, planes e importaciones usarÃ¡n esta moneda. Los registros anteriores conservan la moneda con la que fueron creados.',timezoneHint:'Ejemplo: America/Mexico_City, America/Sao_Paulo o America/New_York.',save:'Guardar perfil',saving:'Guardando...'}
+ pt:{name:'Nome',phone:'Telefone',country:'Pais',locale:'Idioma e formato',currency:'Moeda principal',timezone:'Fuso horario',optional:'Opcional',localeHint:'Ajusta formato de datas, numeros e moeda. Os textos principais da plataforma aparecem em portugues quando disponiveis.',currencyHint:'Novos movimentos, planos e importacoes usarao esta moeda. Registros anteriores conservam a moeda em que foram criados.',timezoneHint:'Exemplo: America/Mexico_City, America/Sao_Paulo ou America/New_York.',save:'Salvar perfil',saving:'Salvando...'},
+ es:{name:'Nombre',phone:'Telefono',country:'Pais',locale:'Idioma y formato',currency:'Moneda principal',timezone:'Zona horaria',optional:'Opcional',localeHint:'Ajusta formato de fechas, numeros y moneda. Los textos principales de la plataforma se mostraran en tu idioma cuando esten disponibles.',currencyHint:'Los nuevos movimientos, planes e importaciones usaran esta moneda. Los registros anteriores conservan la moneda con la que fueron creados.',timezoneHint:'Ejemplo: America/Mexico_City, America/Sao_Paulo o America/New_York.',save:'Guardar perfil',saving:'Guardando...'}
 };
 
 export function ProfileForm({profile}:{profile:{name:string;phone?:string|null;country:string;currency:string;locale:string;timezone:string}}){
@@ -29,15 +29,8 @@ export function ProfileForm({profile}:{profile:{name:string;phone?:string|null;c
  const text=locale.startsWith('pt')?copy.pt:copy.es;
  const [state,action,pending]=useActionState(updateProfile,{});
  useEffect(()=>{if(state.message)router.refresh();},[router,state.message]);
- function applyCountry(code:string){
-  const next=countries.find(item=>item.code===code);
-  if(!next){setCountry(code);return;}
-  setCountry(next.code);setCurrency(next.currency);setLocale(next.locale);setTimezone(next.timezone);
- }
- function applyLocale(value:string){
-  const next=countryFromLocale(value);
-  setLocale(value);setCountry(next.code);setCurrency(next.currency);setTimezone(next.timezone);
- }
+ function applyCountry(code:string){const next=countries.find(item=>item.code===code);if(!next){setCountry(code);return;}setCountry(next.code);setCurrency(next.currency);setLocale(next.locale);setTimezone(next.timezone);}
+ function applyLocale(value:string){const next=countryFromLocale(value);setLocale(value);setCountry(next.code);setCurrency(next.currency);setTimezone(next.timezone);}
  return <form action={action} className="form-stack narrow profile-form">
   <div><Label htmlFor="name">{text.name}</Label><Input id="name" name="name" required maxLength={80} defaultValue={profile.name}/></div>
   <div><Label htmlFor="phone">{text.phone}</Label><Input id="phone" name="phone" maxLength={40} defaultValue={profile.phone??''} placeholder={text.optional}/></div>
