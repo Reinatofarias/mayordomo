@@ -16,56 +16,61 @@ function formatDate(value:string|null|undefined,locale:string){
 export default async function Profile(){
  const c=await getContext(false);
  const checkout=hotmartCheckoutUrl();
- const [access,{data:subscriptions},{data:requests},{data:principle},{count:activityCount}]=await Promise.all([
+ const [access,{data:subscriptions},{data:requests},{data:principle},{count:transactionCount},{count:budgetCount},{count:goalCount},{count:debtCount},{count:supportCount}]=await Promise.all([
   hasProductAccess(c.db),
   c.db.from('subscriptions').select('id,provider,plan,status,purchased_at,renewal_at,access_until').eq('user_id',c.user.id).order('created_at',{ascending:false}),
   c.db.from('support_requests').select('id,subject,status,created_at').eq('user_id',c.user.id).order('created_at',{ascending:false}).limit(10),
   c.db.from('biblical_principles').select('reference,principle,application,risk_context').eq('theme','mayordomía').eq('active',true).single(),
-  c.db.from('activity_events').select('id',{count:'exact',head:true}).eq('user_id',c.user.id)
+  c.db.from('transactions').select('id',{count:'exact',head:true}).eq('user_id',c.user.id),
+  c.db.from('budgets').select('id',{count:'exact',head:true}).eq('user_id',c.user.id),
+  c.db.from('goals').select('id',{count:'exact',head:true}).eq('user_id',c.user.id),
+  c.db.from('debts').select('id',{count:'exact',head:true}).eq('user_id',c.user.id),
+  c.db.from('support_requests').select('id',{count:'exact',head:true}).eq('user_id',c.user.id)
  ]);
  const monthlyIncome=displayMoney(c.profile.monthly_income_minor,c.profile.currency,c.profile.locale);
  const fixedExpenses=displayMoney(c.profile.fixed_expenses_minor,c.profile.currency,c.profile.locale);
  const reserve=displayMoney(c.profile.reserve_minor,c.profile.currency,c.profile.locale);
+ const planItems=(budgetCount??0)+(goalCount??0)+(debtCount??0);
  return <>
-  <header className="page-heading"><p className="eyebrow">CENTRO DE MAYORDOMÍA</p><h1>{c.profile.name||'Tu perfil'}</h1><p>{c.user.email}</p></header>
+  <header className="page-heading"><p className="eyebrow">CENTRO DE MAYORDOMIA</p><h1>{c.profile.name||'Tu perfil'}</h1><p>{c.user.email}</p></header>
   <section className="profile-hero">
    <div>
     <p className="eyebrow">TU CONTEXTO</p>
-    <h2>Una experiencia financiera guiada por propósito.</h2>
-    <p>MAYORDOMO usa tu perfil para ordenar los datos, sugerir próximos pasos y recordar principios bíblicos sin presión ni culpa.</p>
+    <h2>Una experiencia financiera guiada por proposito.</h2>
+    <p>MAYORDOMO usa tu perfil para ordenar los datos, sugerir proximos pasos y recordar principios biblicos sin presion ni culpa.</p>
    </div>
    {principle&&<PrincipleCard reference={principle.reference} principle={principle.principle} application={principle.application} riskContext={principle.risk_context}/>}
   </section>
-  <dl className="metric-grid profile-metrics"><div><dt>País</dt><dd>{c.profile.country}</dd></div><div><dt>Moneda</dt><dd>{c.profile.currency}</dd></div><div><dt>Acceso</dt><dd>{access?'Activo':'Pendiente'}</dd></div><div><dt>Ingreso estimado</dt><dd>{monthlyIncome}</dd></div><div><dt>Gastos fijos</dt><dd>{fixedExpenses}</dd></div><div><dt>Reserva</dt><dd>{reserve}</dd></div></dl>
+  <dl className="metric-grid profile-metrics"><div><dt>Pais</dt><dd>{c.profile.country}</dd></div><div><dt>Moneda</dt><dd>{c.profile.currency}</dd></div><div><dt>Acceso</dt><dd>{access?'Activo':'Pendiente'}</dd></div><div><dt>Ingreso estimado</dt><dd>{monthlyIncome}</dd></div><div><dt>Gastos fijos</dt><dd>{fixedExpenses}</dd></div><div><dt>Reserva</dt><dd>{reserve}</dd></div></dl>
   <section className="section profile-sections">
    <article>
     <h2>Datos personales</h2>
-    <p>Actualiza solo lo necesario para que los reportes se muestren con el formato correcto.</p>
-    <ProfileForm profile={{name:c.profile.name,phone:c.profile.phone,locale:c.profile.locale,timezone:c.profile.timezone}}/>
+    <p>Actualiza pais, moneda, idioma y zona horaria para que los reportes se muestren con el formato correcto.</p>
+    <ProfileForm profile={{name:c.profile.name,phone:c.profile.phone,country:c.profile.country,currency:c.profile.currency,locale:c.profile.locale,timezone:c.profile.timezone}}/>
    </article>
    <article>
-    <h2>Progreso de uso</h2>
-    <div className="stewardship-score"><strong>{activityCount??0}</strong><span>eventos registrados</span></div>
-    <p className="hint">Este número representa actividad dentro de la app: onboarding, movimientos, reportes, plan y soporte. No mide tu fe ni tu valor personal.</p>
+    <h2>Datos registrados</h2>
+    <dl className="usage-breakdown"><div><dt>Movimientos</dt><dd>{transactionCount??0}</dd></div><div><dt>Plan</dt><dd>{planItems}</dd></div><div><dt>Soporte</dt><dd>{supportCount??0}</dd></div></dl>
+    <p className="hint">Estos numeros muestran registros reales creados por ti: movimientos, presupuestos/metas/deudas y solicitudes de soporte.</p>
    </article>
   </section>
   <section className="section">
-   <h2>Facturación y acceso</h2>
-   {!access&&<p className="status-warning">Tu acceso de producto todavía no está activo. Si ya compraste, revisa el acceso con el mismo correo de Hotmart.</p>}
+   <h2>Facturacion y acceso</h2>
+   {!access&&<p className="status-warning">Tu acceso de producto todavia no esta activo. Si ya compraste, revisa el acceso con el mismo correo de Hotmart.</p>}
    {subscriptions?.length?subscriptions.map(s=><article key={s.id} className="billing-card">
     <h3>{s.plan}</h3>
     <p>Proveedor: {s.provider} · Estado: {s.status}</p>
-    <p>Compra: {formatDate(s.purchased_at,c.profile.locale)}<br/>Renovación: {formatDate(s.renewal_at,c.profile.locale)}<br/>Acceso hasta: {formatDate(s.access_until,c.profile.locale)}</p>
+    <p>Compra: {formatDate(s.purchased_at,c.profile.locale)}<br/>Renovacion: {formatDate(s.renewal_at,c.profile.locale)}<br/>Acceso hasta: {formatDate(s.access_until,c.profile.locale)}</p>
     <Button asChild variant="outline"><a href="https://consumer.hotmart.com/" target="_blank" rel="noopener noreferrer">Administrar en Hotmart</a></Button>
-   </article>):<p>No hay una suscripción registrada para este correo.</p>}
+   </article>):<p>No hay una suscripcion registrada para este correo.</p>}
    <div className="page-actions">
     <form action={refreshHotmartAccess}><Button variant="outline">Revisar acceso Hotmart</Button></form>
     {checkout&&<Button asChild><a href={checkout} target="_blank" rel="noopener noreferrer">Comprar acceso</a></Button>}
    </div>
    <p className="hint">Para cancelar o cambiar datos de pago, usa el portal de Hotmart. Si compraste con otro correo, solicita soporte.</p>
-   <Link href="#soporte">Solicitar ayuda →</Link>
+   <Link href="#soporte">Solicitar ayuda -&gt;</Link>
   </section>
   <section className="section" id="soporte"><h2>Soporte</h2><p>Abre el chat de ayuda. Primero respondera MAYORDOMO; si hace falta una persona, el caso queda marcado para revision humana.</p><div className="page-actions"><Button asChild><Link href="/ayuda">Abrir chat de soporte</Link></Button></div>{requests?.length?<div className="support-history"><h3>Solicitudes recientes</h3>{requests.map(r=><article key={r.id}><strong>{r.subject}</strong><span>{r.status==='OPEN'?'Recibida':r.status} · {formatDate(r.created_at,c.profile.locale)}</span></article>)}</div>:<p className="hint">Aun no tienes solicitudes registradas.</p>}</section>
-  <section className="section"><form action={signOut}><Button variant="outline">Cerrar sesión</Button></form></section>
+  <section className="section"><form action={signOut}><Button variant="outline">Cerrar sesion</Button></form></section>
  </>;
 }

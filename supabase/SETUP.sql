@@ -391,7 +391,7 @@ do $$ declare t text; begin
  end loop;
 end $$;
 revoke update on public.profiles from authenticated;
-grant update(name,phone,locale,timezone) on public.profiles to authenticated;
+grant update(name,phone,country,currency,locale,timezone) on public.profiles to authenticated;
 revoke update on public.transactions from authenticated;
 grant update(description,merchant,category_id,occurred_at,amount_minor,currency,kind,account_id) on public.transactions to authenticated;
 drop policy owner_insert on public.transactions;
@@ -452,6 +452,19 @@ create policy owner_read on public.support_messages for select to authenticated 
 create policy owner_insert on public.support_messages for insert to authenticated with check((select auth.uid())=user_id and sender='user');
 grant select,insert on public.support_messages to authenticated;
 
+-- Migration: 202609150009_profile_preferences_notifications.sql
+grant update(name,phone,country,currency,locale,timezone) on public.profiles to authenticated;
+create table public.notification_dismissals (
+ user_id uuid not null references auth.users(id) on delete cascade,
+ key text not null check(length(key) between 1 and 120),
+ dismissed_at timestamptz not null default now(),
+ primary key(user_id,key)
+);
+alter table public.notification_dismissals enable row level security;
+create policy owner_read on public.notification_dismissals for select to authenticated using((select auth.uid())=user_id);
+create policy owner_insert on public.notification_dismissals for insert to authenticated with check((select auth.uid())=user_id);
+create policy owner_update on public.notification_dismissals for update to authenticated using((select auth.uid())=user_id) with check((select auth.uid())=user_id);
+grant select,insert,update on public.notification_dismissals to authenticated;
 -- Migration: 202609110007_messaging.sql
 create table private.messaging_events (
  id uuid primary key default gen_random_uuid(),provider text not null,external_id text not null,
