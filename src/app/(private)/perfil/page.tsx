@@ -70,7 +70,7 @@ export default async function Profile(){
    <p className="hint">Para cancelar o cambiar datos de pago, usa el portal de Hotmart. Si compraste con otro correo, solicita soporte.</p>
    <Link href="#soporte">Solicitar ayuda -&gt;</Link>
   </section>
-  <section className="section" id="soporte"><h2>Soporte</h2><p>Abre el chat de ayuda. Primero respondera MAYORDOMO; si hace falta una persona, el caso queda marcado para revision humana.</p><div className="page-actions"><Button asChild><Link href="/ayuda">Abrir chat de soporte</Link></Button></div>{requests?.length?<div className="support-history"><h3>Solicitudes recientes</h3>{requests.map(r=><article key={r.id}><strong>{r.subject}</strong><span>{r.status==='OPEN'?'Recibida':r.status} · {formatDate(r.created_at,c.profile.locale)}</span></article>)}</div>:<p className="hint">Aun no tienes solicitudes registradas.</p>}</section>
+  <section className="section" id="soporte"><h2>Soporte</h2><p>Usa el boton flotante de ayuda en la esquina inferior. Primero veras dudas frecuentes y respuestas preparadas; si aun necesitas ayuda, el Gemini responde antes de escalar a humano.</p>{requests?.length?<div className="support-history"><h3>Solicitudes recientes</h3>{requests.map(r=><article key={r.id}><strong>{r.subject}</strong><span>{r.status==='OPEN'?'Recibida':r.status} · {formatDate(r.created_at,c.profile.locale)}</span></article>)}</div>:<p className="hint">Aun no tienes solicitudes registradas.</p>}</section>
   <section className="section"><form action={signOut}><Button variant="outline">Cerrar sesion</Button></form></section>
  </>;
 }
