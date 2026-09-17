@@ -20,13 +20,13 @@ export async function requestSupport(_previous:FormState,form:FormData):Promise<
 
 export async function updateProfile(_previous:FormState,form:FormData):Promise<FormState>{
  const parsed=z.object({name:z.string().trim().min(1).max(80),phone:z.string().trim().max(40).optional(),country:z.string().length(2),currency:z.string().length(3),locale:z.string().trim().min(2).max(35),timezone:z.string().trim().min(3).max(80)}).safeParse(Object.fromEntries(form));
- if(!parsed.success)return {error:'Revisa tu nombre, telefono, pais, moneda, idioma y zona horaria.'};
+ if(!parsed.success)return {error:'Revisa tu nombre, teléfono, país, moneda, idioma y zona horaria.'};
  const locale=normalizeLocale(parsed.data.locale);const country=countries.find(c=>c.code===parsed.data.country)??countryFromLocale(locale);
- if(!currencySet.has(parsed.data.currency))return {error:'Selecciona una moneda valida.'};
- try{new Intl.DateTimeFormat(locale,{timeZone:parsed.data.timezone}).format(new Date());}catch{return {error:'La zona horaria no parece valida. Ejemplo: America/Mexico_City.'};}
+ if(!currencySet.has(parsed.data.currency))return {error:locale.startsWith('pt')?'Selecione uma moeda válida.':'Selecciona una moneda válida.'};
+ try{new Intl.DateTimeFormat(locale,{timeZone:parsed.data.timezone}).format(new Date());}catch{return {error:locale.startsWith('pt')?'O fuso horário não parece válido. Exemplo: America/Sao_Paulo.':'La zona horaria no parece válida. Ejemplo: America/Mexico_City.'};}
  const c=await getContext(false);
  const {error}=await c.db.from('profiles').update({name:parsed.data.name,phone:parsed.data.phone??'',country:country.code,currency:parsed.data.currency,locale,timezone:parsed.data.timezone}).eq('id',c.user.id);
- if(error)return {error:'No pudimos actualizar tu perfil. Intentalo de nuevo.'};
- revalidatePath('/perfil');revalidatePath('/hoy');revalidatePath('/movimientos');revalidatePath('/plan');revalidatePath('/informe');
- return {message:'Perfil actualizado. Las proximas pantallas y nuevos registros usaran esta configuracion.'};
+ if(error)return {error:locale.startsWith('pt')?'Não conseguimos atualizar seu perfil. Tente novamente.':'No pudimos actualizar tu perfil. Inténtalo de nuevo.'};
+ revalidatePath('/','layout');revalidatePath('/perfil');revalidatePath('/hoy');revalidatePath('/movimientos');revalidatePath('/plan');revalidatePath('/informe');
+ return {message:locale.startsWith('pt')?'Perfil atualizado. As próximas telas e novos registros usarão esta configuração.':'Perfil actualizado. Las próximas pantallas y nuevos registros usarán esta configuración.'};
 }

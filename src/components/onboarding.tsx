@@ -41,7 +41,7 @@ export function Onboarding(){
   return ()=>window.clearTimeout(timer);
  },[]);
  function selectCountry(value:string){const next=countries.find(c=>c.code===value)??initial;setCountry(next.code);setCurrency(next.currency);setLocale(next.locale);setTimezone(next.timezone);}
- function selectLocale(value:string){setLocale(value);const next=countryFromLocale(value);setCountry(next.code);setCurrency(next.currency);}
+ function selectLocale(value:string){setLocale(value);const next=countryFromLocale(value);setCountry(next.code);setCurrency(next.currency);setTimezone(next.timezone);}
  function next(){
   if(step===2&&!name.trim()){setLocalError('Escribe tu nombre para continuar.');return;}
   if(step===4&&!income.trim()){setLocalError('Agrega tu ingreso mensual aproximado, aunque sea una estimacion.');return;}
